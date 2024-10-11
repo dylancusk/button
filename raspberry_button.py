@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import datetime
 import csv
 import RPi.GPIO as GPIO
+import threading
 
 class ImageDisplayApp:
     def __init__(self, root):
@@ -18,12 +19,26 @@ class ImageDisplayApp:
 
         self.select_folder_button = tk.Button(root, text="Select Folder", command=self.select_folder)
         self.select_folder_button.pack()
+        
+        # Remove the "Record Image" button
+        # self.save_button = tk.Button(root, text="Record Image", command=self.record_image, state=tk.DISABLED)
+        # self.save_button.pack()
 
         # Setup GPIO for physical button
-        self.gpio_button_pin = 27  # GPIO pin number
+        self.gpio_button_pin = 10  # GPIO pin number
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.gpio_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(self.gpio_button_pin, GPIO.FALLING, callback=self.gpio_button_pressed, bouncetime=300)
+        GPIO.setup(self.gpio_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        GPIO.add_event_detect(self.gpio_button_pin, GPIO.RISING, callback=self.gpio_button_pressed, bouncetime=300)
+
+        # Start a thread to handle GPIO events
+        self.gpio_thread = threading.Thread(target=self.gpio_event_loop)
+        self.gpio_thread.daemon = True
+        self.gpio_thread.start()
+
+    def gpio_event_loop(self):
+        while True:
+            if GPIO.event_detected(self.gpio_button_pin):
+                self.gpio_button_pressed(self.gpio_button_pin)
 
     def select_folder(self):
         self.image_folder = filedialog.askdirectory()

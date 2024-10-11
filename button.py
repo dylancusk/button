@@ -4,7 +4,6 @@ from tkinter import filedialog
 from PIL import Image, ImageTk
 import datetime
 import csv
-import RPi.GPIO as GPIO
 import threading
 
 class ImageDisplayApp:
@@ -23,18 +22,6 @@ class ImageDisplayApp:
         # Remove the "Record Image" button
         # self.save_button = tk.Button(root, text="Record Image", command=self.record_image, state=tk.DISABLED)
         # self.save_button.pack()
-
-        # Setup GPIO for physical button
-        self.gpio_button_pin = 17  # GPIO pin number
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.gpio_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(self.gpio_button_pin, GPIO.FALLING, callback=self.gpio_button_pressed, bouncetime=300)
-
-        # Start a thread to handle GPIO events
-        self.gpio_thread = threading.Thread(target=self.gpio_event_loop)
-        self.gpio_thread.daemon = True
-        self.gpio_thread.start()
-
     def gpio_event_loop(self):
         while True:
             if GPIO.event_detected(self.gpio_button_pin):
@@ -56,6 +43,29 @@ class ImageDisplayApp:
             self.display_label.image = photo
 
     def record_image(self):
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.log.append((self.current_image_name, timestamp, self.save_button_press_count))
+        print(f"Recorded: {self.current_image_name} at {timestamp} with {self.save_button_press_count} button press(es)")
+
+        # Save log as CSV
+        csv_file = os.path.join(self.image_folder, "log.csv")
+        with open(csv_file, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["Image Name", "Timestamp", "Button Press Count"])
+            writer.writerows(self.log)
+
+    def increment_button_press_count(self):
+        self.save_button_press_count += 1
+
+    def select_folder(self):
+        self.image_folder = filedialog.askdirectory()
+        if self.image_folder:
+            self.image_files = [f for f in os.listdir(self.image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
+            self.image_index = 0
+            self.save_button.config(state=tk.NORMAL)
+            self.next_image()
+
+    def next_image(self):
         if self.image_files:
             image_path = os.path.join(self.image_folder, self.image_files[self.image_index])
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
