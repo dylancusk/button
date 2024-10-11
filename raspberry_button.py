@@ -20,7 +20,7 @@ class ImageDisplayApp:
         self.select_folder_button.pack()
 
         # Setup GPIO for physical button
-        self.gpio_button_pin = 17  # GPIO pin number
+        self.gpio_button_pin = 27  # GPIO pin number
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.gpio_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.add_event_detect(self.gpio_button_pin, GPIO.FALLING, callback=self.gpio_button_pressed, bouncetime=300)
